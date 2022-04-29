@@ -1,4 +1,4 @@
-import { ApolloClient, InMemoryCache, gql } from '@apollo/client'
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client/core'
 import { Slack } from './slack'
 
 declare const GITHUB_TOKEN: string
