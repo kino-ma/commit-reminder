@@ -8,6 +8,10 @@ compatibility_date = "2022-04-29"
 
 # [secrets]
 # GITHUB_TOKEN
+# SLACK_BOT_TOKEN
+# SLACK_SIGNING_SECRET
+# SLACK_WEBHOOK_URL
+# SLACK_USER_ID
 
 [build]
 command = "npm install && npm run build"
