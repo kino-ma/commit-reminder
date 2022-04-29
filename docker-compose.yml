@@ -7,4 +7,7 @@ services:
     volumes:
       - "/app/node_modules"
       - "./:/app"
-    command: "node_modules/.bin/wrangler dev --ip 0.0.0.0"
+      - "./.wrangler/config/default.toml:/root/.wrangler/config/default.toml:ro"
+    command: "npm run dev"
+    env_file:
+      - ".env"

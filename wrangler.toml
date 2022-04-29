@@ -1,10 +1,13 @@
 name = "commit-reminder"
 type = "javascript"
 zone_id = ""
-account_id = ""
+account_id = "1146b5f051ea47c3cbd0da1e64394984"
 route = ""
 workers_dev = true
 compatibility_date = "2022-04-29"
+
+# [secrets]
+# GITHUB_TOKEN
 
 [build]
 command = "npm install && npm run build"

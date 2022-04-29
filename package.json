@@ -8,7 +8,7 @@
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "test": "jest --config jestconfig.json --verbose",
-    "dev": "node /app/node_modules/@cloudflare/wrangler/run-wrangler.js"
+    "dev": "node_modules/.bin/wrangler dev --ip 0.0.0.0"
   },
   "author": "author",
   "license": "MIT OR Apache-2.0",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^3.0.0",
     "@types/jest": "^26.0.23",
+    "@types/node": "^17.0.30",
     "@types/service-worker-mock": "^2.0.1",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
     "@typescript-eslint/parser": "^4.16.1",
@@ -38,6 +39,8 @@
     "webpack-cli": "^4.7.0"
   },
   "dependencies": {
-    "@cloudflare/wrangler": "^1.19.12"
+    "@apollo/client": "^3.6.1",
+    "@cloudflare/wrangler": "^1.19.12",
+    "graphql": "^16.4.0"
   }
 }
