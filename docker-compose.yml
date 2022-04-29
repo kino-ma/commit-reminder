@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8787:8787"
+    volumes:
+      - "/app/node_modules"
+      - "./:/app"
+    command: "node_modules/.bin/wrangler dev --ip 0.0.0.0"
