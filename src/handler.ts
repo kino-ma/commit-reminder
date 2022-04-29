@@ -1,12 +1,6 @@
-import {
-  ApolloClient,
-  InMemoryCache,
-  ApolloProvider,
-  useQuery,
-  gql,
-} from '@apollo/client'
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client'
 
-declare var GITHUB_TOKEN: string
+declare const GITHUB_TOKEN: string
 console.log({ GITHUB_TOKEN })
 
 const client = new ApolloClient({
@@ -18,8 +12,31 @@ const client = new ApolloClient({
   },
 })
 
-export async function handleRequest(request: Request): Promise<Response> {
-  const { data } = await client.query({
+const sendReminder = () => {
+  console.log('reminder')
+}
+const sendLog = () => {
+  console.log('log')
+}
+
+interface UserContribution {
+  user: {
+    contributionsCollection: {
+      contributionCalendar: {
+        weeks: {
+          contributionDays: {
+            contributionCount: number
+            date: string
+            weekday: number
+          }[]
+        }[]
+      }
+    }
+  }
+}
+
+export async function handleRequest(_request: Request): Promise<Response> {
+  const { data } = await client.query<UserContribution>({
     query: gql`
       query ($userName: String!) {
         user(login: $userName) {
@@ -30,6 +47,7 @@ export async function handleRequest(request: Request): Promise<Response> {
                 contributionDays {
                   contributionCount
                   date
+                  weekday
                 }
               }
             }
@@ -42,5 +60,19 @@ export async function handleRequest(request: Request): Promise<Response> {
     },
   })
 
-  return new Response(JSON.stringify(data))
+  // Sunday = 0, Monday = 1...
+  const weekday = new Date().getDay()
+
+  const { weeks } = data.user.contributionsCollection.contributionCalendar
+  const thisWeek = weeks[weeks.length - 1]
+  const today = thisWeek.contributionDays[weekday]
+  const { contributionCount } = today
+
+  if (contributionCount < 1) {
+    sendReminder()
+  } else {
+    sendLog()
+  }
+
+  return new Response(JSON.stringify({ contributionCount }))
 }
