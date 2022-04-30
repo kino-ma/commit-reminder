@@ -56,8 +56,7 @@ interface UserContribution {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function handleRequest(_: Request): Promise<Response> {
+const runReminder = async (): Promise<number> => {
   const { data } = await client.query<UserContribution>({
     query: gql`
       query ($userName: String!) {
@@ -96,5 +95,19 @@ export async function handleRequest(_: Request): Promise<Response> {
     await sendLog(contributionCount)
   }
 
-  return new Response(JSON.stringify({ contributionCount }))
+  return contributionCount
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function handleScheduled(event: ScheduledEvent): Promise<void> {
+  await runReminder()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function handleRequest(_: Request): Promise<Response> {
+  const contributionCount = await runReminder()
+  const body = {
+    contributionCount,
+  }
+  return new Response(JSON.stringify(body))
 }
