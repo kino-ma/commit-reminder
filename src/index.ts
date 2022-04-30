@@ -1,7 +1,7 @@
-import { handleRequest, handleScheduled } from './handler'
+import { router, handleScheduled } from './handler'
 
 addEventListener('fetch', (event) => {
-  event.respondWith(handleRequest(event.request))
+  event.respondWith(router.handle(event.request))
 })
 
 addEventListener('scheduled', (event) => {

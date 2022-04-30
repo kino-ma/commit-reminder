@@ -41,6 +41,7 @@
   "dependencies": {
     "@apollo/client": "^3.6.1",
     "@cloudflare/wrangler": "^1.19.12",
-    "graphql": "^16.4.0"
+    "graphql": "^16.4.0",
+    "itty-router": "^2.6.1"
   }
 }

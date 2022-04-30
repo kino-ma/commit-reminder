@@ -29,7 +29,5 @@ export class Slack {
       console.error(await resp.text())
       throw resp
     }
-
-    console.log({ resp })
   }
 }

@@ -1,4 +1,6 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client/core'
+import { Router } from 'itty-router'
+
 import { Slack } from './slack'
 
 declare const GITHUB_TOKEN: string
@@ -8,6 +10,7 @@ declare const SLACK_BOT_TOKEN: string
 declare const SLACK_SIGNING_SECRET: string
 declare const SLACK_WEBHOOK_URL: string
 declare const SLACK_USER_ID: string
+declare const SECRET_PATH: string
 
 const MENTION = `<@${SLACK_USER_ID}>`
 
@@ -30,9 +33,9 @@ const sendReminder = async () => {
 const sendLog = async (contributionCount?: number) => {
   let text: string
   if (contributionCount) {
-    text = `Today's contribution(s): *${contributionCount}*\n${MENTION}`
+    text = `Today's contribution(s): *${contributionCount}*`
   } else {
-    text = `You have achived today's contribution goal! :tada:\n${MENTION}`
+    text = `You have achived today's contribution goal! :tada:`
   }
   console.log(text)
 
@@ -103,11 +106,14 @@ export async function handleScheduled(event: ScheduledEvent): Promise<void> {
   await runReminder()
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function handleRequest(_: Request): Promise<Response> {
+export const router = Router()
+
+router.get(`/${SECRET_PATH}`, async () => {
   const contributionCount = await runReminder()
   const body = {
     contributionCount,
   }
   return new Response(JSON.stringify(body))
-}
+})
+
+router.all('*', () => new Response('404, not found!', { status: 404 }))
