@@ -51,7 +51,7 @@ const sendReminder = async () => {
 const sendLog = async (contributionCount?: number) => {
   let text: string
   if (contributionCount) {
-    text = `Today's contribution(s): *${contributionCount}*`
+    text = `You have achived today's contribution goal! :tada:\nToday's contribution(s): *${contributionCount}*`
   } else {
     text = `You have achived today's contribution goal! :tada:`
   }
@@ -118,15 +118,17 @@ const runReminder = async (date: Date, reallySend = true): Promise<number> => {
   if (contributionCount < 1) {
     await sendReminder()
   } else {
-    const todayDate = date.getDate().toString()
+    const jstDate = new Date(date.valueOf())
+    jstDate.setHours(jstDate.getHours() + TIMEZONE)
+    const todayDate = jstDate.getDate().toString()
     const lastLog = await CR_KV.get(LAST_LOG_DATE)
 
     // Send log if it haven't been sent today
-    if (lastLog == null || lastLog != todayDate) {
-      await sendLog()
+    if (lastLog == null || lastLog != jstDate.getDay().toString()) {
+      await sendLog(contributionCount)
       CR_KV.put(LAST_LOG_DATE, todayDate)
     } else {
-      console.log('skipping log')
+      console.log(`skipping log. last log date: "${lastLog}"`)
     }
   }
 
