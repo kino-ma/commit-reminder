@@ -124,7 +124,8 @@ const runReminder = async (date: Date, reallySend = true): Promise<number> => {
     const lastLog = await CR_KV.get(LAST_LOG_DATE)
 
     // Send log if it haven't been sent today
-    if (lastLog == null || lastLog != jstDate.getDay().toString()) {
+    if (lastLog == null || lastLog != todayDate) {
+      console.log(`sending log. last log date: "${lastLog}" (todayDate)`)
       await sendLog(contributionCount)
       CR_KV.put(LAST_LOG_DATE, todayDate)
     } else {
