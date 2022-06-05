@@ -11,8 +11,33 @@ declare const SLACK_SIGNING_SECRET: string
 declare const SLACK_WEBHOOK_URL: string
 declare const SLACK_USER_ID: string
 declare const SECRET_PATH: string
+declare let TODAY_COUNT: string
 
 const MENTION = `<@${SLACK_USER_ID}>`
+
+const TIMEZONE = 9
+const START_HOUR = 22 - TIMEZONE
+const START_MINUTE = 30
+const END_HOUR = 23 - TIMEZONE
+const END_MINUTE = 59
+const CRON_FREQUENCY_MINUTE = 30
+
+const getTimeOfToday = (hour: number, minute: number): Date => {
+  const date = new Date()
+  date.setHours(hour, minute)
+  return date
+}
+
+const startDate = getTimeOfToday(START_HOUR, START_MINUTE)
+const endDate = getTimeOfToday(END_HOUR, END_MINUTE)
+
+const isFirstCall = (calledDate: Date): boolean => {
+  const possibleLastDate = new Date(startDate.valueOf())
+  possibleLastDate.setMinutes(
+    possibleLastDate.getMinutes() + CRON_FREQUENCY_MINUTE,
+  )
+  return startDate <= calledDate && calledDate < possibleLastDate
+}
 
 const client = new ApolloClient({
   uri: 'https://api.github.com/graphql',
@@ -98,11 +123,31 @@ const runReminder = async (): Promise<number> => {
     await sendLog(contributionCount)
   }
 
+  TODAY_COUNT = contributionCount.toString()
+
   return contributionCount
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function handleScheduled(event: ScheduledEvent): Promise<void> {
+  const date = new Date(event.scheduledTime)
+
+  if (date < startDate) {
+    // If not to be started yet
+    return
+  } else if (date > endDate) {
+    // If to be ended
+    return
+  }
+
+  if (isFirstCall(date)) {
+    TODAY_COUNT = '0'
+  }
+
+  if (Number(TODAY_COUNT) > 0) {
+    return
+  }
+
   await runReminder()
 }
 

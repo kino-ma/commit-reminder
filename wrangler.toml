@@ -5,6 +5,9 @@ account_id = "1146b5f051ea47c3cbd0da1e64394984"
 route = ""
 workers_dev = true
 compatibility_date = "2022-04-29"
+kv_namespaces = [
+     { binding = "TODAY_COUNT", id = "6846bd5fe2c544a5b8b2b46f70ca451d" }
+]
 
 # [secrets]
 # GITHUB_TOKEN
@@ -13,6 +16,8 @@ compatibility_date = "2022-04-29"
 # SLACK_WEBHOOK_URL
 # SLACK_USER_ID
 # SECRET_PATH
+
+[variables]
 
 [build]
 command = "npm install && npm run build"
