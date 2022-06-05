@@ -11,7 +11,9 @@ declare const SLACK_SIGNING_SECRET: string
 declare const SLACK_WEBHOOK_URL: string
 declare const SLACK_USER_ID: string
 declare const SECRET_PATH: string
-declare let TODAY_COUNT: string
+
+declare const CR_KV: KVNamespace
+const LAST_LOG_DATE = 'LAST_LOG_DATE'
 
 const MENTION = `<@${SLACK_USER_ID}>`
 
@@ -20,7 +22,6 @@ const START_HOUR = 22 - TIMEZONE
 const START_MINUTE = 30
 const END_HOUR = 23 - TIMEZONE
 const END_MINUTE = 59
-const CRON_FREQUENCY_MINUTE = 30
 
 const getTimeOfToday = (hour: number, minute: number): Date => {
   const date = new Date()
@@ -30,14 +31,6 @@ const getTimeOfToday = (hour: number, minute: number): Date => {
 
 const startDate = getTimeOfToday(START_HOUR, START_MINUTE)
 const endDate = getTimeOfToday(END_HOUR, END_MINUTE)
-
-const isFirstCall = (calledDate: Date): boolean => {
-  const possibleLastDate = new Date(startDate.valueOf())
-  possibleLastDate.setMinutes(
-    possibleLastDate.getMinutes() + CRON_FREQUENCY_MINUTE,
-  )
-  return startDate <= calledDate && calledDate < possibleLastDate
-}
 
 const client = new ApolloClient({
   uri: 'https://api.github.com/graphql',
@@ -84,7 +77,7 @@ interface UserContribution {
   }
 }
 
-const runReminder = async (): Promise<number> => {
+const runReminder = async (date: Date, reallySend = true): Promise<number> => {
   const { data } = await client.query<UserContribution>({
     query: gql`
       query ($userName: String!) {
@@ -117,13 +110,25 @@ const runReminder = async (): Promise<number> => {
   const today = thisWeek.contributionDays[weekday]
   const { contributionCount } = today
 
+  if (!reallySend) {
+    // If not to be started yet or to be ended
+    return contributionCount
+  }
+
   if (contributionCount < 1) {
     await sendReminder()
   } else {
-    await sendLog(contributionCount)
-  }
+    const todayDate = date.getDate().toString()
+    const lastLog = await CR_KV.get(LAST_LOG_DATE)
 
-  TODAY_COUNT = contributionCount.toString()
+    // Send log if it haven't been sent today
+    if (lastLog == null || lastLog != todayDate) {
+      await sendLog()
+      CR_KV.put(LAST_LOG_DATE, todayDate)
+    } else {
+      console.log('skipping log')
+    }
+  }
 
   return contributionCount
 }
@@ -131,30 +136,15 @@ const runReminder = async (): Promise<number> => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function handleScheduled(event: ScheduledEvent): Promise<void> {
   const date = new Date(event.scheduledTime)
-
-  if (date < startDate) {
-    // If not to be started yet
-    return
-  } else if (date > endDate) {
-    // If to be ended
-    return
-  }
-
-  if (isFirstCall(date)) {
-    TODAY_COUNT = '0'
-  }
-
-  if (Number(TODAY_COUNT) > 0) {
-    return
-  }
-
-  await runReminder()
+  const reallySend = date < startDate || date > endDate
+  await runReminder(date, reallySend)
 }
 
 export const router = Router()
 
 router.get(`/${SECRET_PATH}`, async () => {
-  const contributionCount = await runReminder()
+  const date = new Date()
+  const contributionCount = await runReminder(date)
   const body = {
     contributionCount,
   }

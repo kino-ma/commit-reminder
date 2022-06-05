@@ -6,7 +6,7 @@ route = ""
 workers_dev = true
 compatibility_date = "2022-04-29"
 kv_namespaces = [
-     { binding = "TODAY_COUNT", id = "6846bd5fe2c544a5b8b2b46f70ca451d" }
+   { binding = "CR_KV", id = "5742ed807c6d46bb825bec92f1c2ef96" }
 ]
 
 # [secrets]
