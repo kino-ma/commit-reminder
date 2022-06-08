@@ -139,7 +139,7 @@ const runReminder = async (date: Date, reallySend = true): Promise<number> => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function handleScheduled(event: ScheduledEvent): Promise<void> {
   const date = new Date(event.scheduledTime)
-  const reallySend = date < startDate || date > endDate
+  const reallySend = startDate <= date || date > endDate
   await runReminder(date, reallySend)
 }
 
