@@ -127,7 +127,7 @@ const runReminder = async (date: Date, reallySend = true): Promise<number> => {
     if (lastLog == null || lastLog != todayDate) {
       console.log(`sending log. last log date: "${lastLog}" (todayDate)`)
       await sendLog(contributionCount)
-      CR_KV.put(LAST_LOG_DATE, todayDate)
+      await CR_KV.put(LAST_LOG_DATE, todayDate)
     } else {
       console.log(`skipping log. last log date: "${lastLog}"`)
     }
