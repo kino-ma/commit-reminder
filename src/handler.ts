@@ -43,18 +43,86 @@ const client = new ApolloClient({
 
 const slack = new Slack(SLACK_WEBHOOK_URL)
 
-const sendReminder = async () => {
+type Log = {
+  name: 'log'
+  contributionCount?: number
+}
+type Reminder = 'reminder'
+type Nothing = 'nothing'
+
+type MessageType = Log | Reminder | Nothing
+type Message = {
+  typ: MessageType
+  date: Date
+}
+
+const newMessage = (
+  date: Date,
+  contributionCount: number,
+  lastSentDate: string,
+): Message => {
+  // send reminder
+  if (contributionCount < 1) {
+    return {
+      typ: 'reminder',
+      date,
+    }
+  }
+
+  const jstDate = new Date(date.valueOf())
+  jstDate.setHours(jstDate.getHours() + TIMEZONE)
+  const todayDate = jstDate.getDate().toString()
+
+  // send nothing
+  if (lastSentDate !== null && lastSentDate === todayDate) {
+    return {
+      typ: 'nothing',
+      date,
+    }
+  }
+
+  // send log
+  return {
+    typ: {
+      name: 'log',
+      contributionCount,
+    },
+    date,
+  }
+}
+
+const logText = ({ contributionCount }: Log): string => {
+  if (contributionCount) {
+    return `You have achived today's contribution goal! :tada:\nToday's contribution(s): *${contributionCount}*`
+  } else {
+    return `You have achived today's contribution goal! :tada:`
+  }
+}
+
+export const isTimeToSend = (date: Date): boolean =>
+  startDate <= date && date < endDate
+
+const send = async (message: Message): Promise<void> => {
+  if (!isTimeToSend(message.date) || message.typ === 'nothing') {
+    console.log(`skipping log.`)
+    return
+  }
+
+  if (typeof message.typ !== 'string' && message.typ.name === 'log') {
+    await sendLog(message.typ)
+  } else if (message.typ === 'reminder') {
+    await sendReminder(message.typ)
+  }
+}
+
+const sendReminder = async (_reminder: Reminder) => {
   const text = `Contribute to GitHub at least 1 time\n${MENTION}`
   await slack.send(text)
   console.log('sent a reminder')
 }
-const sendLog = async (contributionCount?: number) => {
-  let text: string
-  if (contributionCount) {
-    text = `You have achived today's contribution goal! :tada:\nToday's contribution(s): *${contributionCount}*`
-  } else {
-    text = `You have achived today's contribution goal! :tada:`
-  }
+
+const sendLog = async (log: Log) => {
+  const text = logText(log)
   console.log(text)
 
   await slack.send(text)
@@ -76,6 +144,8 @@ interface UserContribution {
     }
   }
 }
+
+// TODO run and test
 
 const runReminder = async (date: Date, reallySend = true): Promise<number> => {
   const { data } = await client.query<UserContribution>({
@@ -115,23 +185,10 @@ const runReminder = async (date: Date, reallySend = true): Promise<number> => {
     return contributionCount
   }
 
-  if (contributionCount < 1) {
-    await sendReminder()
-  } else {
-    const jstDate = new Date(date.valueOf())
-    jstDate.setHours(jstDate.getHours() + TIMEZONE)
-    const todayDate = jstDate.getDate().toString()
-    const lastLog = await CR_KV.get(LAST_LOG_DATE)
+  const lastSentDate = (await CR_KV.get(LAST_LOG_DATE)) ?? ''
 
-    // Send log if it haven't been sent today
-    if (lastLog == null || lastLog != todayDate) {
-      console.log(`sending log. last log date: "${lastLog}" (todayDate)`)
-      await sendLog(contributionCount)
-      await CR_KV.put(LAST_LOG_DATE, todayDate)
-    } else {
-      console.log(`skipping log. last log date: "${lastLog}"`)
-    }
-  }
+  const msg = newMessage(date, contributionCount, lastSentDate)
+  await send(msg)
 
   return contributionCount
 }
