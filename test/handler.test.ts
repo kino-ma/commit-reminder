@@ -1,18 +1,19 @@
-import { handleRequest } from '../src/handler'
-import makeServiceWorkerEnv from 'service-worker-mock'
+import { isTimeToSend } from '../src/handler'
 
-declare var global: any
+describe('logic', () => {
+  test('determine whether to send reminder', async () => {
+    // 18:00. not to send
+    const dateNotToSend = new Date()
+    dateNotToSend.setHours(18)
 
-describe('handle', () => {
-  beforeEach(() => {
-    Object.assign(global, makeServiceWorkerEnv())
-    jest.resetModules()
-  })
+    let x = isTimeToSend(dateNotToSend)
+    expect(x).toBeFalsy()
 
-  test('handle GET', async () => {
-    const result = await handleRequest(new Request('/', { method: 'GET' }))
-    expect(result.status).toEqual(200)
-    const text = await result.text()
-    expect(text).toEqual('request method: GET')
+    // 23:30. to send
+    const dateToSend = new Date()
+    dateNotToSend.setHours(23, 30)
+
+    x = isTimeToSend(dateToSend)
+    expect(x).toBeTruthy()
   })
 })

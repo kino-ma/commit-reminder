@@ -1,16 +1,7 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client/core'
-import { Router } from 'itty-router'
 
+import { getTimeOfToday } from './lib'
 import { Slack } from './slack'
-
-declare const GITHUB_TOKEN: string
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const SLACK_BOT_TOKEN: string
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const SLACK_SIGNING_SECRET: string
-declare const SLACK_WEBHOOK_URL: string
-declare const SLACK_USER_ID: string
-declare const SECRET_PATH: string
 
 declare const CR_KV: KVNamespace
 const LAST_LOG_DATE = 'LAST_LOG_DATE'
@@ -22,15 +13,6 @@ const START_HOUR = 22 - TIMEZONE
 const START_MINUTE = 30
 const END_HOUR = 23 - TIMEZONE
 const END_MINUTE = 59
-
-const getTimeOfToday = (hour: number, minute: number): Date => {
-  const date = new Date()
-  date.setHours(hour, minute)
-  return date
-}
-
-const startDate = getTimeOfToday(START_HOUR, START_MINUTE)
-const endDate = getTimeOfToday(END_HOUR, END_MINUTE)
 
 const client = new ApolloClient({
   uri: 'https://api.github.com/graphql',
@@ -56,7 +38,7 @@ type Message = {
   date: Date
 }
 
-const newMessage = (
+export const newMessage = (
   date: Date,
   contributionCount: number,
   lastSentDate: string,
@@ -69,12 +51,8 @@ const newMessage = (
     }
   }
 
-  const jstDate = new Date(date.valueOf())
-  jstDate.setHours(jstDate.getHours() + TIMEZONE)
-  const todayDate = jstDate.getDate().toString()
-
   // send nothing
-  if (lastSentDate !== null && lastSentDate === todayDate) {
+  if (isSameDate(lastSentDate, date)) {
     return {
       typ: 'nothing',
       date,
@@ -99,8 +77,22 @@ const logText = ({ contributionCount }: Log): string => {
   }
 }
 
-export const isTimeToSend = (date: Date): boolean =>
-  startDate <= date && date < endDate
+export const isTimeToSend = (date: Date): boolean => {
+  const startDate = getTimeOfToday(START_HOUR, START_MINUTE)
+  const endDate = getTimeOfToday(END_HOUR, END_MINUTE)
+  console.log(`start: ${startDate}, end: ${endDate}, date: ${date}`)
+  return startDate <= date && date < endDate
+}
+
+export const isSameDate = (jstDateA: string, utcDateB: Date): boolean => {
+  const jstDateB = new Date(utcDateB.valueOf())
+  jstDateB.setHours(jstDateB.getHours() + TIMEZONE)
+
+  const dateB = jstDateB.getDate().toString()
+
+  console.log(`sameDate: ${[jstDateA, dateB]}`)
+  return jstDateA === dateB
+}
 
 const send = async (message: Message): Promise<void> => {
   if (!isTimeToSend(message.date) || message.typ === 'nothing') {
@@ -145,9 +137,10 @@ interface UserContribution {
   }
 }
 
-// TODO run and test
-
-const runReminder = async (date: Date, reallySend = true): Promise<number> => {
+export const runReminder = async (
+  date: Date,
+  reallySend = true,
+): Promise<number> => {
   const { data } = await client.query<UserContribution>({
     query: gql`
       query ($userName: String!) {
@@ -196,19 +189,5 @@ const runReminder = async (date: Date, reallySend = true): Promise<number> => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function handleScheduled(event: ScheduledEvent): Promise<void> {
   const date = new Date(event.scheduledTime)
-  const reallySend = startDate <= date && date < endDate
-  await runReminder(date, reallySend)
+  await runReminder(date)
 }
-
-export const router = Router()
-
-router.get(`/${SECRET_PATH}`, async () => {
-  const date = new Date()
-  const contributionCount = await runReminder(date)
-  const body = {
-    contributionCount,
-  }
-  return new Response(JSON.stringify(body))
-})
-
-router.all('*', () => new Response('404, not found!', { status: 404 }))
