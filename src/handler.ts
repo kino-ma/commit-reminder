@@ -121,6 +121,11 @@ const sendLog = async (log: Log) => {
   console.log('sent a log')
 }
 
+const updateLastLogDate = async (date: Date) => {
+  const dateString = date.getDate().toString()
+  await CR_KV.put(LAST_LOG_DATE, dateString)
+}
+
 interface UserContribution {
   user: {
     contributionsCollection: {
@@ -182,6 +187,10 @@ export const runReminder = async (
 
   const msg = newMessage(date, contributionCount, lastSentDate)
   await send(msg)
+
+  if (typeof msg.typ !== 'string' && msg.typ.name === 'log') {
+    updateLastLogDate(date)
+  }
 
   return contributionCount
 }
