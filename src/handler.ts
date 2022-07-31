@@ -95,7 +95,7 @@ export const isSameDate = (jstDateA: string, utcDateB: Date): boolean => {
 }
 
 const send = async (message: Message): Promise<void> => {
-  if (!isTimeToSend(message.date) || message.typ === 'nothing') {
+  if (message.typ === 'nothing') {
     console.log(`skipping log.`)
     return
   }
@@ -198,5 +198,11 @@ export const runReminder = async (
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function handleScheduled(event: ScheduledEvent): Promise<void> {
   const date = new Date(event.scheduledTime)
+
+  if (!isTimeToSend(date)) {
+    console.log(`no time to send. skip`)
+    return
+  }
+
   await runReminder(date)
 }
